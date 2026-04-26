@@ -13,6 +13,7 @@ from datetime import datetime
 from tkinter import ttk, messagebox, filedialog
 
 from audits import linux, windows
+from reports.generator import generate_html_report
 
 
 # ── Paths ───────────────────────────────────────────────────────
@@ -230,24 +231,20 @@ class AuditApp:
             json.dump(results, fh, indent=2)
 
     def _generate_report(self) -> None:
-        """Export the current results as a readable JSON file."""
+        """Generate an HTML audit report and open it in the browser."""
         if not self._last_results:
             messagebox.showwarning("No Data", "Run an audit first before generating a report.")
             return
 
-        filepath = filedialog.asksaveasfilename(
-            title="Save Report",
-            defaultextension=".json",
-            filetypes=[("JSON", "*.json"), ("All Files", "*.*")],
-        )
+        try:
+            report_path = generate_html_report(self._last_results)
+            messagebox.showinfo("Report Generated", f"Report saved to:\n{report_path}")
 
-        if not filepath:
-            return
-
-        with open(filepath, "w", encoding="utf-8") as fh:
-            json.dump(self._last_results, fh, indent=2)
-
-        messagebox.showinfo("Report Saved", f"Report saved to:\n{filepath}")
+            # Open the report in the default browser
+            import webbrowser
+            webbrowser.open(f"file:///{report_path}")
+        except Exception as exc:
+            messagebox.showerror("Report Error", str(exc))
 
 
 def main() -> None:
