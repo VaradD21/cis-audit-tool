@@ -1,0 +1,2 @@
+# This file ensures the results/ directory is tracked in version control.
+# Audit JSON output files will be saved here at runtime.

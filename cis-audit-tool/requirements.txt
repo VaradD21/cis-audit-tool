@@ -1,0 +1,10 @@
+# CIS Audit Tool - Dependencies
+#
+# tkinter is included with standard Python (no pip install needed)
+#
+# Report generation
+weasyprint>=60.0      # HTML-to-PDF conversion
+jinja2>=3.1.0         # HTML report templating
+#
+# Audit helpers
+psutil>=5.9.0         # Cross-platform system info
