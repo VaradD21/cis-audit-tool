@@ -7,6 +7,7 @@ displaying results in a colour-coded table, and generating reports.
 
 import json
 import os
+import logging
 import threading
 import tkinter as tk
 from datetime import datetime
@@ -14,6 +15,14 @@ from tkinter import ttk, messagebox, filedialog
 
 from audits import linux, windows
 from reports.generator import generate_html_report
+
+# ── Logging Configuration ──────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%H:%M:%S'
+)
+logger = logging.getLogger("CIS-Audit")
 
 
 # ── Paths ───────────────────────────────────────────────────────
@@ -31,6 +40,7 @@ class AuditApp:
         self.root.minsize(720, 440)
         self.root.configure(bg="#1e1e2e")
 
+        logger.info("Initializing CIS Audit Tool GUI...")
         self._last_results: list[dict[str, str]] = []
 
         self._build_header()
@@ -164,7 +174,9 @@ class AuditApp:
     def _run_audit(self, os_type: str) -> None:
         """Run the selected audit in a background thread."""
         self._set_buttons_enabled(False)
-        self.status_label.config(text=f"Running {os_type} audit…")
+        msg = f"Starting {os_type} audit..."
+        self.status_label.config(text=msg)
+        logger.info(msg)
 
         def task() -> None:
             try:
@@ -173,8 +185,10 @@ class AuditApp:
                 else:
                     results = windows.run_all_checks()
 
+                logger.info(f"Successfully retrieved {len(results)} results for {os_type}")
                 self.root.after(0, lambda: self._display_results(results, os_type))
             except Exception as exc:
+                logger.error(f"Audit failed: {exc}")
                 self.root.after(0, lambda: self._show_error(str(exc)))
 
         threading.Thread(target=task, daemon=True).start()
@@ -192,6 +206,9 @@ class AuditApp:
             tag = "pass" if item["status"] == "PASS" else "fail"
             if tag == "pass":
                 pass_count += 1
+                logger.info(f"PASS: {item['check_name']}")
+            else:
+                logger.warning(f"FAIL: {item['check_name']} - {item['details']}")
 
             self.tree.insert("", "end", values=(
                 item["check_name"],
@@ -229,21 +246,27 @@ class AuditApp:
 
         with open(filepath, "w", encoding="utf-8") as fh:
             json.dump(results, fh, indent=2)
+        logger.info(f"Auto-saved JSON results to {filepath}")
 
     def _generate_report(self) -> None:
         """Generate an HTML audit report and open it in the browser."""
         if not self._last_results:
+            logger.warning("Attempted to generate report with no data")
             messagebox.showwarning("No Data", "Run an audit first before generating a report.")
             return
 
         try:
+            logger.info("Generating HTML report...")
             report_path = generate_html_report(self._last_results)
+            logger.info(f"Report generated successfully at {report_path}")
             messagebox.showinfo("Report Generated", f"Report saved to:\n{report_path}")
 
             # Open the report in the default browser
             import webbrowser
+            logger.info(f"Opening report in default browser...")
             webbrowser.open(f"file:///{report_path}")
         except Exception as exc:
+            logger.error(f"Report generation failed: {exc}")
             messagebox.showerror("Report Error", str(exc))
 
 

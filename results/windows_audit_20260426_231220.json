@@ -1,0 +1,7 @@
+[
+  {
+    "check_name": "PowerShell Error",
+    "status": "FAIL",
+    "details": "At E:\\CIS script\\cis-audit-tool\\audits\\windows_audit.ps1:118 char:9\n+ } catch {\n+         ~\nMissing closing '}' in statement block or type definition.\n    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException\n    + FullyQualifiedErrorId : MissingEndCurlyBrace"
+  }
+]
