@@ -4,7 +4,9 @@ import os
 
 def run_windows_audit():
     """Run the PowerShell script and return the list of results."""
-    ps_file = os.path.join(os.path.dirname(__file__), "win_checks.ps1")
+    # Path to script in the 'scripts' folder
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    ps_file = os.path.join(base_dir, "scripts", "win_checks.ps1")
     
     # Run powershell command
     cmd = ["powershell", "-ExecutionPolicy", "Bypass", "-File", ps_file]

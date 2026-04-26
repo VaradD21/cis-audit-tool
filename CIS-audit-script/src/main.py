@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-import audit_runner
+import engine
 
 def execute_audit(system):
     # Clear old results
@@ -11,11 +11,9 @@ def execute_audit(system):
     root.update()
     
     if system == "Windows":
-        data = audit_runner.run_all_checks_win() # Wait, I named it differently in runner, let me fix it
-        # Actually I'll just call the runner function directly
-        data = audit_runner.run_windows_audit()
+        data = engine.run_windows_audit()
     else:
-        data = audit_runner.run_linux_audit()
+        data = engine.run_linux_audit()
         
     for res in data:
         tag = "pass" if res['status'] == "PASS" else "fail"
