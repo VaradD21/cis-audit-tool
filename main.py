@@ -11,12 +11,11 @@ import logging
 import threading
 import tkinter as tk
 from datetime import datetime
+from pathlib import Path
 from tkinter import ttk, messagebox, filedialog
-
-from audits import linux, windows
 from reports.generator import generate_html_report
 
-# ── Logging Configuration ──────────────────────────────────────
+#  Logging Configuration 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -25,7 +24,7 @@ logging.basicConfig(
 logger = logging.getLogger("CIS-Audit")
 
 
-# ── Paths ───────────────────────────────────────────────────────
+#  Paths 
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
@@ -180,6 +179,7 @@ class AuditApp:
 
         def task() -> None:
             try:
+                from audits import linux, windows
                 if os_type == "linux":
                     results = linux.run_all_checks()
                 else:
@@ -216,7 +216,7 @@ class AuditApp:
                 item["details"],
             ), tags=(tag,))
 
-        total = len(results)
+        total = len(results) or 1  # Prevent division by zero
         self.summary_label.config(
             text=f"{os_type.capitalize()} audit: {pass_count}/{total} passed"
         )
@@ -264,7 +264,8 @@ class AuditApp:
             # Open the report in the default browser
             import webbrowser
             logger.info(f"Opening report in default browser...")
-            webbrowser.open(f"file:///{report_path}")
+            file_url = Path(report_path).as_uri()
+            webbrowser.open(file_url)
         except Exception as exc:
             logger.error(f"Report generation failed: {exc}")
             messagebox.showerror("Report Error", str(exc))

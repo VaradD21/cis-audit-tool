@@ -1,18 +1,9 @@
-"""
-reports/generator.py - HTML Audit Report Generator
-
-Takes a list of audit results and produces a self-contained HTML report
-with a summary, a CSS-only pie chart, and a colour-coded results table.
-
-No external libraries required — uses only Python builtins.
-"""
 
 import os
 from datetime import datetime
 from html import escape
 
 
-# Path to the results/ directory (sibling of reports/)
 RESULTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results")
 
 
@@ -34,11 +25,12 @@ def generate_html_report(
         os.makedirs(RESULTS_DIR, exist_ok=True)
         output_path = os.path.join(RESULTS_DIR, "audit_report.html")
 
-    total   = len(results)
+    total   = len(results) or 1  # Prevent division by zero
     passed  = sum(1 for r in results if r["status"] == "PASS")
     failed  = total - passed
-    pct     = round((passed / total) * 100) if total else 0
-    now     = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
+    pct_pass = round((passed / total) * 100) if total else 0
+    pct_fail = 100 - pct_pass
+    now     = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     table_rows = _build_table_rows(results)
     html       = _TEMPLATE.format(
@@ -46,8 +38,8 @@ def generate_html_report(
         total=total,
         passed=passed,
         failed=failed,
-        pct_pass=pct,
-        pct_fail=100 - pct,
+        pct_pass=pct_pass,
+        pct_fail=pct_fail,
         rows=table_rows,
     )
 

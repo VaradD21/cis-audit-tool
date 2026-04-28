@@ -1,7 +1,0 @@
-[
-  {
-    "check_name": "PowerShell Error",
-    "status": "FAIL",
-    "details": "The script 'windows_audit.ps1' cannot be run because it contains a \"#requires\" statement for running as Administrator. \nThe current Windows PowerShell session is not running as Administrator. Start Windows PowerShell by  using the Run as \nAdministrator option, and then try running the script again.\n    + CategoryInfo          : PermissionDenied: (windows_audit.ps1:String) [], ParentContainsErrorRecordException\n    + FullyQualifiedErrorId : ScriptRequiresElevation"
-  }
-]

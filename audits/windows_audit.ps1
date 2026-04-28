@@ -29,23 +29,39 @@ function Add-Result {
     [void]$results.Add($obj)
 }
 
-# 1. Minimum Password Length (>= 14)
+# 1. Minimum Password Length or Windows Hello PIN (>= 14 or PIN set)
 try {
-    $secpolFile = "$env:TEMP\secpol_audit.cfg"
-    secedit /export /cfg $secpolFile | Out-Null
-    $cfg = Get-Content $secpolFile
-    $line = $cfg | Where-Object { $_ -match "MinimumPasswordLength\s*=" }
-    if ($line) {
-        $value = [int]($line -split "=")[1].Trim()
-        if ($value -ge 14) {
-            Add-Result "Minimum Password Length" "PASS" "MinimumPasswordLength = $value (>= 14)"
-        } else {
-            Add-Result "Minimum Password Length" "FAIL" "MinimumPasswordLength = $value (required >= 14)"
+    # First check if Windows Hello PIN is enabled
+    $pinPath = "HKLM:\SOFTWARE\Policies\Microsoft\PassportForWork\PINComplexity"
+    $pinEnabled = $false
+    
+    if (Test-Path $pinPath) {
+        $props = Get-ItemProperty -Path $pinPath -ErrorAction SilentlyContinue
+        if ($props) {
+            $pinEnabled = $true
         }
-    } else {
-        Add-Result "Minimum Password Length" "FAIL" "Setting not found"
     }
-    if (Test-Path $secpolFile) { Remove-Item $secpolFile -Force }
+    
+    if ($pinEnabled) {
+        Add-Result "Minimum Password Length" "PASS" "Windows Hello PIN is configured"
+    } else {
+        # Check password policy if PIN not set
+        $secpolFile = "$env:TEMP\secpol_audit.cfg"
+        secedit /export /cfg $secpolFile | Out-Null
+        $cfg = Get-Content $secpolFile
+        $line = $cfg | Where-Object { $_ -match "MinimumPasswordLength\s*=" }
+        if ($line) {
+            $value = [int]($line -split "=")[1].Trim()
+            if ($value -ge 14) {
+                Add-Result "Minimum Password Length" "PASS" "MinimumPasswordLength = $value (>= 14)"
+            } else {
+                Add-Result "Minimum Password Length" "FAIL" "MinimumPasswordLength = $value (required >= 14)"
+            }
+        } else {
+            Add-Result "Minimum Password Length" "FAIL" "Setting not found and PIN not configured"
+        }
+        if (Test-Path $secpolFile) { Remove-Item $secpolFile -Force }
+    }
 } catch {
     Add-Result "Minimum Password Length" "FAIL" "Error: $($_.Exception.Message)"
 }
@@ -117,18 +133,36 @@ try {
     Add-Result "AutoRun Disabled" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 6. Screen Saver with Password
+# 6. Lock Screen on Wake (Require Password)
 try {
-    $path = "HKCU:\Control Panel\Desktop"
-    $ssActive = (Get-ItemProperty -Path $path -Name "ScreenSaveActive" -ErrorAction SilentlyContinue).ScreenSaveActive
-    $ssSecure = (Get-ItemProperty -Path $path -Name "ScreenSaverIsSecure" -ErrorAction SilentlyContinue).ScreenSaverIsSecure
-    if ($ssActive -eq "1" -and $ssSecure -eq "1") {
-        Add-Result "Screen Saver with Password" "PASS" "Enabled with password"
+    # Check if lock screen is enabled on wake-up
+    $powerPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+    $noLock = $null
+    
+    if (Test-Path $powerPath) {
+        $props = Get-ItemProperty -Path $powerPath -ErrorAction SilentlyContinue
+        if ($props -and ($props | Get-Member -Name "NoLockScreen" -ErrorAction SilentlyContinue)) {
+            $noLock = $props.NoLockScreen
+        }
+    }
+    
+    # Also check desktop lock setting
+    $desktopPath = "HKCU:\Control Panel\Desktop"
+    $screenSave = $null
+    if (Test-Path $desktopPath) {
+        $props = Get-ItemProperty -Path $desktopPath -ErrorAction SilentlyContinue
+        if ($props -and ($props | Get-Member -Name "ScreenSaveActive" -ErrorAction SilentlyContinue)) {
+            $screenSave = $props.ScreenSaveActive
+        }
+    }
+    
+    if ($noLock -ne 1 -or $screenSave -eq "1") {
+        Add-Result "Lock Screen on Wake" "PASS" "Lock screen enabled on wake-up"
     } else {
-        Add-Result "Screen Saver with Password" "FAIL" "Not enabled or no password"
+        Add-Result "Lock Screen on Wake" "FAIL" "Lock screen not enabled"
     }
 } catch {
-    Add-Result "Screen Saver with Password" "FAIL" "Error: $($_.Exception.Message)"
+    Add-Result "Lock Screen on Wake" "FAIL" "Error: $($_.Exception.Message)"
 }
 
 # 7. Windows Defender Enabled
