@@ -15,6 +15,8 @@ class CheckResult(TypedDict):
     check_name: str
     status: str
     details: str
+    severity: str
+    impact: str
 
 
 def run_all_checks() -> list[CheckResult]:
@@ -53,6 +55,8 @@ def run_all_checks() -> list[CheckResult]:
                 "check_name": item.get("check", "Unknown"),
                 "status": item.get("status", "FAIL"),
                 "details": item.get("details", ""),
+                "severity": "High" if "Password" in item.get("check", "") or "Account" in item.get("check", "") else "Medium",
+                "impact": "System-Wide"
             }
             for item in raw
         ]

@@ -3,7 +3,7 @@
 # tkinter is included with standard Python (no pip install needed)
 #
 # Report generation
-weasyprint>=60.0      # HTML-to-PDF conversion
+xhtml2pdf>=0.2.11     # HTML-to-PDF conversion without GTK dependencies
 jinja2>=3.1.0         # HTML report templating
 #
 # Audit helpers

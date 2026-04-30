@@ -2,8 +2,6 @@
 import os
 from datetime import datetime
 from html import escape
-
-
 RESULTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results")
 
 
@@ -49,16 +47,52 @@ def generate_html_report(
     return os.path.abspath(output_path)
 
 
+def generate_pdf_report(
+    results: list[dict[str, str]],
+    output_path: str | None = None,
+) -> str:
+    """
+    Build a PDF report from audit results.
+    """
+    html_path = generate_html_report(results)
+    
+    if output_path is None:
+        os.makedirs(RESULTS_DIR, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(RESULTS_DIR, f"audit_report_{timestamp}.pdf")
+
+    try:
+        from xhtml2pdf import pisa
+        with open(html_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+        with open(output_path, "wb") as f:
+            pisa_status = pisa.CreatePDF(html_content, dest=f)
+        if pisa_status.err:
+            raise RuntimeError("PDF generation failed with xhtml2pdf.")
+        return os.path.abspath(output_path)
+    except ImportError:
+        try:
+            from weasyprint import HTML
+            HTML(filename=html_path).write_pdf(output_path)
+            return os.path.abspath(output_path)
+        except Exception as e:
+            raise RuntimeError("PDF generation requires 'xhtml2pdf'. Please run: pip install xhtml2pdf")
+
+
 def _build_table_rows(results: list[dict[str, str]]) -> str:
     """Return HTML <tr> elements for every result."""
     rows: list[str] = []
     for idx, item in enumerate(results, start=1):
         status_class = "pass" if item["status"] == "PASS" else "fail"
+        severity = item.get('severity', 'Unknown')
+        impact = item.get('impact', 'Unknown')
         rows.append(
             f"  <tr class='{status_class}'>"
             f"<td>{idx}</td>"
             f"<td>{escape(item['check_name'])}</td>"
             f"<td class='badge'>{escape(item['status'])}</td>"
+            f"<td>{escape(severity)}</td>"
+            f"<td>{escape(impact)}</td>"
             f"<td>{escape(item['details'])}</td>"
             f"</tr>"
         )
@@ -79,8 +113,8 @@ _TEMPLATE = """\
   body {{
     margin: 0;
     font-family: 'Segoe UI', system-ui, sans-serif;
-    background: #1e1e2e;
-    color: #cdd6f4;
+    background: #ffffff;
+    color: #000000;
     padding: 32px 48px;
   }}
 
@@ -89,10 +123,11 @@ _TEMPLATE = """\
     text-align: center;
     font-size: 26px;
     margin-bottom: 4px;
+    color: #000000;
   }}
   .subtitle {{
     text-align: center;
-    color: #6c7086;
+    color: #666666;
     margin-bottom: 28px;
   }}
 
@@ -105,11 +140,12 @@ _TEMPLATE = """\
     margin-bottom: 32px;
   }}
   .card {{
-    background: #313244;
+    background: #f0f0f0;
     border-radius: 12px;
     padding: 18px 28px;
     min-width: 140px;
     text-align: center;
+    border: 1px solid #dddddd;
   }}
   .card .value {{
     font-size: 32px;
@@ -117,12 +153,12 @@ _TEMPLATE = """\
   }}
   .card .label {{
     font-size: 13px;
-    color: #6c7086;
+    color: #666666;
     margin-top: 4px;
   }}
-  .card.pass .value {{ color: #a6e3a1; }}
-  .card.fail .value {{ color: #f38ba8; }}
-  .card.total .value {{ color: #89b4fa; }}
+  .card.pass .value {{ color: #2e7d32; }}
+  .card.fail .value {{ color: #c62828; }}
+  .card.total .value {{ color: #1565c0; }}
 
   /* ── Pie chart (pure CSS conic-gradient) ─────────── */
   .chart-section {{
@@ -137,10 +173,10 @@ _TEMPLATE = """\
     height: 140px;
     border-radius: 50%;
     background: conic-gradient(
-      #a6e3a1 0% {pct_pass}%,
-      #f38ba8 {pct_pass}% 100%
+      #4caf50 0% {pct_pass}%,
+      #f44336 {pct_pass}% 100%
     );
-    box-shadow: 0 0 0 6px #313244;
+    box-shadow: 0 0 0 6px #f0f0f0;
   }}
   .legend {{
     display: flex;
@@ -152,14 +188,15 @@ _TEMPLATE = """\
     align-items: center;
     gap: 8px;
     font-size: 14px;
+    color: #000000;
   }}
   .legend-dot {{
     width: 14px;
     height: 14px;
     border-radius: 4px;
   }}
-  .legend-dot.green {{ background: #a6e3a1; }}
-  .legend-dot.red   {{ background: #f38ba8; }}
+  .legend-dot.green {{ background: #4caf50; }}
+  .legend-dot.red   {{ background: #f44336; }}
 
   /* ── Table ───────────────────────────────────────── */
   table {{
@@ -168,23 +205,27 @@ _TEMPLATE = """\
     font-size: 14px;
   }}
   thead th {{
-    background: #45475a;
+    background: #e0e0e0;
+    color: #000000;
     padding: 10px 14px;
     text-align: left;
     font-weight: 600;
+    border: 1px solid #cccccc;
   }}
   thead th:nth-child(1) {{ width: 40px; text-align: center; }}
   thead th:nth-child(3) {{ width: 80px; text-align: center; }}
 
   tbody td {{
     padding: 9px 14px;
-    border-bottom: 1px solid #313244;
+    border-bottom: 1px solid #dddddd;
+    border-left: 1px solid #dddddd;
+    border-right: 1px solid #dddddd;
   }}
-  tbody td:nth-child(1) {{ text-align: center; color: #6c7086; }}
+  tbody td:nth-child(1) {{ text-align: center; color: #666666; }}
 
   /* Row colours */
-  tr.pass {{ background: rgba(166, 227, 161, 0.10); }}
-  tr.fail {{ background: rgba(243, 139, 168, 0.10); }}
+  tr.pass {{ background: rgba(76, 175, 80, 0.05); }}
+  tr.fail {{ background: rgba(244, 67, 54, 0.05); }}
 
   /* Status badge */
   td.badge {{
@@ -193,14 +234,14 @@ _TEMPLATE = """\
     font-size: 12px;
     letter-spacing: 0.5px;
   }}
-  tr.pass td.badge {{ color: #a6e3a1; }}
-  tr.fail td.badge {{ color: #f38ba8; }}
+  tr.pass td.badge {{ color: #2e7d32; }}
+  tr.fail td.badge {{ color: #c62828; }}
 
   /* ── Footer ──────────────────────────────────────── */
   footer {{
     text-align: center;
     margin-top: 32px;
-    color: #6c7086;
+    color: #666666;
     font-size: 12px;
   }}
 </style>
@@ -229,7 +270,7 @@ _TEMPLATE = """\
 <!-- Results table -->
 <table>
   <thead>
-    <tr><th>#</th><th>Check Name</th><th>Status</th><th>Details</th></tr>
+    <tr><th>#</th><th>Check Name</th><th>Status</th><th>Severity</th><th>Impact</th><th>Details</th></tr>
   </thead>
   <tbody>
 {rows}

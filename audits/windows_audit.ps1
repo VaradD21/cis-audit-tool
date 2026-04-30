@@ -8,8 +8,7 @@
     JSON array: [{"check": "...", "status": "PASS/FAIL", "details": "..."}]
 #>
 
-#Requires -RunAsAdministrator
-
+# Output JSON without enforcing Admin privilege at startup
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -213,6 +212,70 @@ try {
     }
 } catch {
     Add-Result "BitLocker on C:" "FAIL" "Error: $($_.Exception.Message)"
+}
+
+# 11. UAC Enabled
+try {
+    $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
+    $val = (Get-ItemProperty -Path $regPath -Name "EnableLUA" -ErrorAction SilentlyContinue).EnableLUA
+    if ($val -eq 1) {
+        Add-Result "UAC Enabled" "PASS" "User Account Control is enabled"
+    } else {
+        Add-Result "UAC Enabled" "FAIL" "User Account Control is disabled"
+    }
+} catch {
+    Add-Result "UAC Enabled" "FAIL" "Error: $($_.Exception.Message)"
+}
+
+# 12. SMBv1 Disabled
+try {
+    $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
+    $val = (Get-ItemProperty -Path $regPath -Name "SMB1" -ErrorAction SilentlyContinue).SMB1
+    if ($null -eq $val -or $val -eq 0) {
+        Add-Result "SMBv1 Disabled" "PASS" "SMBv1 is safely disabled"
+    } else {
+        Add-Result "SMBv1 Disabled" "FAIL" "SMBv1 is enabled (Vulnerable)"
+    }
+} catch {
+    Add-Result "SMBv1 Disabled" "FAIL" "Error: $($_.Exception.Message)"
+}
+
+# 13. Windows Update Active
+try {
+    $svc = Get-Service -Name "wuauserv" -ErrorAction SilentlyContinue
+    if ($null -ne $svc -and $svc.StartType -ne "Disabled") {
+        Add-Result "Windows Update Active" "PASS" "Windows Update service is not disabled"
+    } else {
+        Add-Result "Windows Update Active" "FAIL" "Windows Update service is disabled"
+    }
+} catch {
+    Add-Result "Windows Update Active" "FAIL" "Error: $($_.Exception.Message)"
+}
+
+# 14. PowerShell Execution Policy
+try {
+    $policy = Get-ExecutionPolicy
+    if ($policy -in @("Restricted", "RemoteSigned", "AllSigned")) {
+        Add-Result "PowerShell Execution Policy" "PASS" "Execution Policy is safely configured ($policy)"
+    } else {
+        Add-Result "PowerShell Execution Policy" "FAIL" "Execution Policy is $policy"
+    }
+} catch {
+    Add-Result "PowerShell Execution Policy" "FAIL" "Error: $($_.Exception.Message)"
+}
+
+# 15. Administrator Account Renamed
+try {
+    $admin = Get-LocalUser -ErrorAction SilentlyContinue | Where-Object { $_.SID -like "*-500" }
+    if ($null -eq $admin) {
+        Add-Result "Administrator Account Renamed" "FAIL" "Could not enumerate users"
+    } elseif ($admin.Name -eq "Administrator") {
+        Add-Result "Administrator Account Renamed" "FAIL" "Built-in Administrator uses default name"
+    } else {
+        Add-Result "Administrator Account Renamed" "PASS" "Built-in Administrator is renamed"
+    }
+} catch {
+    Add-Result "Administrator Account Renamed" "FAIL" "Error: $($_.Exception.Message)"
 }
 
 # Output as JSON
