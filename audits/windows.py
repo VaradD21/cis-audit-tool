@@ -49,13 +49,32 @@ def run_all_checks() -> list[CheckResult]:
 
         raw: list[dict[str, str]] = json.loads(result.stdout)
 
+        # Standardised severity map matching the GUI requirements
+        severity_map = {
+            "Minimum Password Length": "High",
+            "Account Lockout Threshold": "Medium",
+            "Firewall All Profiles": "Critical",
+            "Guest Account Disabled": "Critical",
+            "AutoRun Disabled": "Medium",
+            "Lock Screen on Wake": "Medium",
+            "Windows Defender Enabled": "High",
+            "Remote Desktop Disabled": "High",
+            "Audit Logon Events": "Medium",
+            "BitLocker on C:": "High",
+            "UAC Enabled": "Critical",
+            "SMBv1 Disabled": "Critical",
+            "Windows Update Active": "High",
+            "PowerShell Execution Policy": "Medium",
+            "Administrator Account Renamed": "High",
+        }
+
         # Normalise key names to match linux.py
         return [
             {
                 "check_name": item.get("check", "Unknown"),
                 "status": item.get("status", "FAIL"),
                 "details": item.get("details", ""),
-                "severity": "High" if "Password" in item.get("check", "") or "Account" in item.get("check", "") else "Medium",
+                "severity": severity_map.get(item.get("check", ""), "Medium"),
                 "impact": "System-Wide"
             }
             for item in raw
