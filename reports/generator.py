@@ -1,105 +1,148 @@
 
 import os
+
 from datetime import datetime
+
 from html import escape
+
 RESULTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results")
 
-
 def generate_html_report(
+
     results: list[dict[str, str]],
+
     output_path: str | None = None,
+
 ) -> str:
-    """
-    Build an HTML report from audit results and write it to disk.
 
-    Args:
-        results:     List of dicts with keys check_name, status, details.
-        output_path: Where to save the file. Defaults to results/audit_report.html.
-
-    Returns:
-        Absolute path of the saved report.
-    """
     if output_path is None:
+
         os.makedirs(RESULTS_DIR, exist_ok=True)
+
         output_path = os.path.join(RESULTS_DIR, "audit_report.html")
 
-    total   = len(results) or 1  # Prevent division by zero
+    total   = len(results) or 1                            
+
     passed  = sum(1 for r in results if r["status"] == "PASS")
+
     failed  = total - passed
+
     pct_pass = round((passed / total) * 100) if total else 0
+
     pct_fail = 100 - pct_pass
+
     now     = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     table_rows = _build_table_rows(results)
+
     html       = _TEMPLATE.format(
+
         date=now,
+
         total=total,
+
         passed=passed,
+
         failed=failed,
+
         pct_pass=pct_pass,
+
         pct_fail=pct_fail,
+
         rows=table_rows,
+
     )
 
     with open(output_path, "w", encoding="utf-8") as fh:
+
         fh.write(html)
 
     return os.path.abspath(output_path)
 
-
 def generate_pdf_report(
+
     results: list[dict[str, str]],
+
     output_path: str | None = None,
+
 ) -> str:
-    """
-    Build a PDF report from audit results.
-    """
+
     html_path = generate_html_report(results)
-    
+
     if output_path is None:
+
         os.makedirs(RESULTS_DIR, exist_ok=True)
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
         output_path = os.path.join(RESULTS_DIR, f"audit_report_{timestamp}.pdf")
 
     try:
+
         from xhtml2pdf import pisa
+
         with open(html_path, "r", encoding="utf-8") as f:
+
             html_content = f.read()
+
         with open(output_path, "wb") as f:
+
             pisa_status = pisa.CreatePDF(html_content, dest=f)
+
         if pisa_status.err:
+
             raise RuntimeError("PDF generation failed with xhtml2pdf.")
+
         return os.path.abspath(output_path)
+
     except ImportError:
+
         try:
+
             from weasyprint import HTML
+
             HTML(filename=html_path).write_pdf(output_path)
+
             return os.path.abspath(output_path)
+
         except Exception as e:
+
             raise RuntimeError("PDF generation requires 'xhtml2pdf'. Please run: pip install xhtml2pdf")
 
-
 def _build_table_rows(results: list[dict[str, str]]) -> str:
-    """Return HTML <tr> elements for every result."""
+
     rows: list[str] = []
+
     for idx, item in enumerate(results, start=1):
+
         status_class = "pass" if item["status"] == "PASS" else "fail"
+
         severity = item.get('severity', 'Unknown')
+
         impact = item.get('impact', 'Unknown')
+
         rows.append(
+
             f"  <tr class='{status_class}'>"
+
             f"<td>{idx}</td>"
+
             f"<td>{escape(item['check_name'])}</td>"
+
             f"<td class='badge'>{escape(item['status'])}</td>"
+
             f"<td>{escape(severity)}</td>"
+
             f"<td>{escape(impact)}</td>"
+
             f"<td>{escape(item['details'])}</td>"
+
             f"</tr>"
+
         )
+
     return "\n".join(rows)
 
-
-# ── Self-contained HTML template ────────────────────────────────
 _TEMPLATE = """\
 <!DOCTYPE html>
 <html lang="en">
