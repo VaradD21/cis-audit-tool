@@ -69,7 +69,6 @@ class AuditApp:
         self.lbl_sub = tk.Label(self.header, text="Run security hardening audits dynamically based on official CIS baselines", font=("Segoe UI", 10))
         self.lbl_sub.pack(pady=(2, 0))
 
-        # Dynamic Host System Inspector
         os_info = "Windows" if self.current_os == "windows" else "Linux" if self.current_os == "linux" else platform.system()
         badge_color = "#89b4fa" if self.current_os == "windows" else "#a6e3a1"
         host_name = platform.node()
@@ -86,7 +85,6 @@ class AuditApp:
             fg="#1e1e2e", bg=badge_color
         ).pack()
 
-        # Toolbar & Filter
         self.toolbar = tk.Frame(self.root)
         self.toolbar.pack(fill="x", padx=20, pady=(10, 5))
 
@@ -96,7 +94,6 @@ class AuditApp:
         self.btn_windows = tk.Button(self.toolbar, text=f"▶  Run {os_label} Audit", command=lambda: self._run_audit(self.current_os), **btn_style)
         self.btn_windows.pack(side="left")
 
-        # Live Filter Combobox
         filter_frame = tk.Frame(self.toolbar)
         filter_frame.pack(side="left", padx=(20, 0))
         
@@ -109,7 +106,6 @@ class AuditApp:
         self.filter_cb.pack(side="left", padx=(5, 0))
         self.filter_cb.bind("<<ComboboxSelected>>", lambda e: self._apply_filter())
 
-        # Live Search Bar
         self.lbl_search = tk.Label(filter_frame, text="Search:", font=("Segoe UI", 10))
         self.lbl_search.pack(side="left", padx=(15, 0))
         
@@ -118,14 +114,12 @@ class AuditApp:
         self.search_entry.pack(side="left", padx=(5, 0))
         self.search_var.trace_add("write", lambda *args: self._apply_filter())
 
-        # Theme Switcher Button
         self.btn_theme = tk.Button(self.toolbar, text="🌓 Theme", command=self.toggle_theme, **btn_style)
         self.btn_theme.pack(side="right")
 
         self.status_label = tk.Label(self.toolbar, text="", font=("Segoe UI", 10, "italic"))
         self.status_label.pack(side="right", padx=(0, 15))
 
-        # Results Grid View
         self.table_container = tk.Frame(self.root)
         self.table_container.pack(fill="both", expand=True, padx=20, pady=5)
 
@@ -153,7 +147,6 @@ class AuditApp:
         self.tree.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
 
-        # Footer Actions Panel
         self.footer = tk.Frame(self.root)
         self.footer.pack(fill="x", padx=20, pady=(5, 15))
 
@@ -175,7 +168,6 @@ class AuditApp:
         self.btn_fix = tk.Button(self.footer, text="🔧 Guide / Fix", command=self._fix_issue, **btn_style)
         self.btn_fix.pack(side="left", padx=(10, 0))
 
-        # Batch Script Exporter Button
         self.btn_export_script = tk.Button(self.footer, text="📦 Export Fix Script", command=self._export_fix_script, **btn_style)
         self.btn_export_script.pack(side="left", padx=(10, 0))
 
@@ -211,7 +203,6 @@ class AuditApp:
         def apply_colors(widget):
             widget_class = widget.winfo_class()
             
-            # Badge frames bypass normal backgrounds
             if hasattr(widget, "is_badge"):
                 return
 
@@ -231,7 +222,6 @@ class AuditApp:
 
         apply_colors(self.root)
         
-        # Explicit styles for highlight actions
         self.btn_windows.configure(bg=theme["btn_run"], fg="#1e1e2e", activebackground=theme["btn_run_hover"])
         self._add_hover_effect(self.btn_windows, theme["btn_run"], theme["btn_run_hover"])
         
@@ -445,7 +435,6 @@ class AuditApp:
 
         theme = THEMES["dark"] if self.dark_mode else THEMES["light"]
 
-        # In-App Premium Remediation Wizard Dialog
         popup = tk.Toplevel(self.root)
         popup.title(f"Remediation Hardening Guide — {check_name}")
         popup.geometry("680x520")
@@ -454,7 +443,6 @@ class AuditApp:
         popup.transient(self.root)
         popup.grab_set()
 
-        # Header Frame
         hdr = tk.Frame(popup, bg=theme["bg"])
         hdr.pack(fill="x", padx=25, pady=(20, 10))
 
@@ -473,7 +461,6 @@ class AuditApp:
 
         tk.Label(meta, text=f"Impact Scope: {impact}", font=("Segoe UI", 9, "bold"), fg=theme["text_mute"], bg=theme["bg"]).pack(side="right")
 
-        # Content Frame
         content = tk.Frame(popup, bg=theme["bg"])
         content.pack(fill="both", expand=True, padx=25, pady=5)
 
@@ -491,7 +478,6 @@ class AuditApp:
         remed_box.insert("1.0", guide["fix"])
         remed_box.config(state="disabled")
 
-        # Footer Actions Frame
         btn_bar = tk.Frame(popup, bg=theme["bg"])
         btn_bar.pack(fill="x", padx=25, pady=(15, 20))
 
@@ -542,7 +528,6 @@ class AuditApp:
         is_win = self.current_os == "windows"
         ext = ".ps1" if is_win else ".sh"
         
-        # Compile executable script header
         header_text = (
             "#\n# Windows CIS Hardening Remediation Script\n"
             f"# Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n#\n\n"
@@ -574,7 +559,6 @@ class AuditApp:
             with open(filepath, "w", encoding="utf-8", newline="\n" if not is_win else None) as f:
                 f.write(script_content)
             
-            # For Linux, set execute permissions automatically
             if not is_win:
                 try:
                     os.chmod(filepath, 0o755)

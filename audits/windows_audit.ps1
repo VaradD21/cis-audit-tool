@@ -1,14 +1,4 @@
-<#
-.SYNOPSIS
-    CIS Benchmark Audit - Windows 11
-.DESCRIPTION
-    Runs 10 CIS benchmark checks and outputs results as JSON.
-    Must be run as Administrator for full accuracy.
-.OUTPUTS
-    JSON array: [{"check": "...", "status": "PASS/FAIL", "details": "..."}]
-#>
-
-# Output JSON without enforcing Admin privilege at startup
+Set-StrictMode -Version Latest
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -28,9 +18,7 @@ function Add-Result {
     [void]$results.Add($obj)
 }
 
-# 1. Minimum Password Length or Windows Hello PIN (>= 14 or PIN set)
 try {
-    # First check if Windows Hello PIN is enabled
     $pinPath = "HKLM:\SOFTWARE\Policies\Microsoft\PassportForWork\PINComplexity"
     $pinEnabled = $false
     
@@ -44,7 +32,6 @@ try {
     if ($pinEnabled) {
         Add-Result "Minimum Password Length" "PASS" "Windows Hello PIN is configured"
     } else {
-        # Check password policy if PIN not set
         $secpolFile = "$env:TEMP\secpol_audit.cfg"
         secedit /export /cfg $secpolFile | Out-Null
         $cfg = Get-Content $secpolFile
@@ -65,7 +52,7 @@ try {
     Add-Result "Minimum Password Length" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 2. Account Lockout Threshold (<= 5)
+try {
 try {
     $netAccounts = net accounts
     $lockLine = $netAccounts | Where-Object { $_ -match "Lockout threshold" }
@@ -86,7 +73,7 @@ try {
     Add-Result "Account Lockout Threshold" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 3. Firewall Enabled on All Profiles
+try {
 try {
     $profiles = Get-NetFirewallProfile
     $disabled = $profiles | Where-Object { $_.Enabled -eq $false }
@@ -100,7 +87,7 @@ try {
     Add-Result "Firewall All Profiles" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 4. Guest Account Disabled
+try {
 try {
     $guest = Get-LocalUser -Name "Guest" -ErrorAction SilentlyContinue
     if ($null -eq $guest) {
@@ -114,7 +101,7 @@ try {
     Add-Result "Guest Account Disabled" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 5. AutoRun Disabled
+try {
 try {
     $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
     $valName = "NoDriveTypeAutoRun"
@@ -132,9 +119,7 @@ try {
     Add-Result "AutoRun Disabled" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 6. Lock Screen on Wake (Require Password)
 try {
-    # Check if lock screen is enabled on wake-up
     $powerPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
     $noLock = $null
     
@@ -145,7 +130,6 @@ try {
         }
     }
     
-    # Also check desktop lock setting
     $desktopPath = "HKCU:\Control Panel\Desktop"
     $screenSave = $null
     if (Test-Path $desktopPath) {
@@ -164,7 +148,7 @@ try {
     Add-Result "Lock Screen on Wake" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 7. Windows Defender Enabled
+try {
 try {
     $status = Get-MpComputerStatus
     if ($status.AntivirusEnabled -eq $true) {
@@ -176,7 +160,7 @@ try {
     Add-Result "Windows Defender Enabled" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 8. Remote Desktop Disabled
+try {
 try {
     $path = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server"
     $rdp = (Get-ItemProperty -Path $path -Name "fDenyTSConnections" -ErrorAction SilentlyContinue).fDenyTSConnections
@@ -189,7 +173,7 @@ try {
     Add-Result "Remote Desktop Disabled" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 9. Audit Logon Events Enabled
+try {
 try {
     $audit = auditpol /get /category:"Logon/Logoff"
     $logon = $audit | Where-Object { $_ -match "Logon\s" }
@@ -202,7 +186,7 @@ try {
     Add-Result "Audit Logon Events" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 10. BitLocker Status on C:
+try {
 try {
     $bl = Get-BitLockerVolume -MountPoint "C:"
     if ($bl.ProtectionStatus -eq "On") {
@@ -214,7 +198,7 @@ try {
     Add-Result "BitLocker on C:" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 11. UAC Enabled
+try {
 try {
     $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
     $val = (Get-ItemProperty -Path $regPath -Name "EnableLUA" -ErrorAction SilentlyContinue).EnableLUA
@@ -227,7 +211,7 @@ try {
     Add-Result "UAC Enabled" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 12. SMBv1 Disabled
+try {
 try {
     $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
     $val = (Get-ItemProperty -Path $regPath -Name "SMB1" -ErrorAction SilentlyContinue).SMB1
@@ -240,7 +224,7 @@ try {
     Add-Result "SMBv1 Disabled" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 13. Windows Update Active
+try {
 try {
     $svc = Get-Service -Name "wuauserv" -ErrorAction SilentlyContinue
     if ($null -ne $svc -and $svc.StartType -ne "Disabled") {
@@ -252,7 +236,7 @@ try {
     Add-Result "Windows Update Active" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 14. PowerShell Execution Policy
+try {
 try {
     $policy = Get-ExecutionPolicy
     if ($policy -in @("Restricted", "RemoteSigned", "AllSigned")) {
@@ -264,7 +248,7 @@ try {
     Add-Result "PowerShell Execution Policy" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# 15. Administrator Account Renamed
+try {
 try {
     $admin = Get-LocalUser -ErrorAction SilentlyContinue | Where-Object { $_.SID -like "*-500" }
     if ($null -eq $admin) {
@@ -278,5 +262,4 @@ try {
     Add-Result "Administrator Account Renamed" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-# Output as JSON
 $results | ConvertTo-Json -Depth 3
