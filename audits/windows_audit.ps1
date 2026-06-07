@@ -1,5 +1,4 @@
 Set-StrictMode -Version Latest
-Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $results = [System.Collections.ArrayList]::new()
@@ -53,7 +52,6 @@ try {
 }
 
 try {
-try {
     $netAccounts = net accounts
     $lockLine = $netAccounts | Where-Object { $_ -match "Lockout threshold" }
     if ($lockLine) {
@@ -74,7 +72,6 @@ try {
 }
 
 try {
-try {
     $profiles = Get-NetFirewallProfile
     $disabled = $profiles | Where-Object { $_.Enabled -eq $false }
     if ($disabled) {
@@ -88,7 +85,6 @@ try {
 }
 
 try {
-try {
     $guest = Get-LocalUser -Name "Guest" -ErrorAction SilentlyContinue
     if ($null -eq $guest) {
         Add-Result "Guest Account Disabled" "PASS" "Guest account does not exist"
@@ -101,7 +97,6 @@ try {
     Add-Result "Guest Account Disabled" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-try {
 try {
     $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"
     $valName = "NoDriveTypeAutoRun"
@@ -149,7 +144,6 @@ try {
 }
 
 try {
-try {
     $status = Get-MpComputerStatus
     if ($status.AntivirusEnabled -eq $true) {
         Add-Result "Windows Defender Enabled" "PASS" "Antivirus is active"
@@ -160,7 +154,6 @@ try {
     Add-Result "Windows Defender Enabled" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-try {
 try {
     $path = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server"
     $rdp = (Get-ItemProperty -Path $path -Name "fDenyTSConnections" -ErrorAction SilentlyContinue).fDenyTSConnections
@@ -174,7 +167,6 @@ try {
 }
 
 try {
-try {
     $audit = auditpol /get /category:"Logon/Logoff"
     $logon = $audit | Where-Object { $_ -match "Logon\s" }
     if ($logon -match "Success and Failure") {
@@ -187,7 +179,6 @@ try {
 }
 
 try {
-try {
     $bl = Get-BitLockerVolume -MountPoint "C:"
     if ($bl.ProtectionStatus -eq "On") {
         Add-Result "BitLocker on C:" "PASS" "BitLocker is On"
@@ -198,7 +189,6 @@ try {
     Add-Result "BitLocker on C:" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-try {
 try {
     $regPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
     $val = (Get-ItemProperty -Path $regPath -Name "EnableLUA" -ErrorAction SilentlyContinue).EnableLUA
@@ -212,7 +202,6 @@ try {
 }
 
 try {
-try {
     $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
     $val = (Get-ItemProperty -Path $regPath -Name "SMB1" -ErrorAction SilentlyContinue).SMB1
     if ($null -eq $val -or $val -eq 0) {
@@ -225,7 +214,6 @@ try {
 }
 
 try {
-try {
     $svc = Get-Service -Name "wuauserv" -ErrorAction SilentlyContinue
     if ($null -ne $svc -and $svc.StartType -ne "Disabled") {
         Add-Result "Windows Update Active" "PASS" "Windows Update service is not disabled"
@@ -237,7 +225,6 @@ try {
 }
 
 try {
-try {
     $policy = Get-ExecutionPolicy
     if ($policy -in @("Restricted", "RemoteSigned", "AllSigned")) {
         Add-Result "PowerShell Execution Policy" "PASS" "Execution Policy is safely configured ($policy)"
@@ -248,7 +235,6 @@ try {
     Add-Result "PowerShell Execution Policy" "FAIL" "Error: $($_.Exception.Message)"
 }
 
-try {
 try {
     $admin = Get-LocalUser -ErrorAction SilentlyContinue | Where-Object { $_.SID -like "*-500" }
     if ($null -eq $admin) {
