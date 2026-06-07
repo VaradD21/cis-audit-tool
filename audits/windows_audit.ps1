@@ -32,20 +32,24 @@ try {
         Add-Result "Minimum Password Length" "PASS" "Windows Hello PIN is configured"
     } else {
         $secpolFile = "$env:TEMP\secpol_audit.cfg"
-        secedit /export /cfg $secpolFile | Out-Null
-        $cfg = Get-Content $secpolFile
-        $line = $cfg | Where-Object { $_ -match "MinimumPasswordLength\s*=" }
-        if ($line) {
-            $value = [int]($line -split "=")[1].Trim()
-            if ($value -ge 14) {
-                Add-Result "Minimum Password Length" "PASS" "MinimumPasswordLength = $value (>= 14)"
+        secedit /export /cfg $secpolFile 2>$null | Out-Null
+        if (Test-Path $secpolFile) {
+            $cfg = Get-Content $secpolFile
+            $line = $cfg | Where-Object { $_ -match "MinimumPasswordLength\s*=" }
+            if ($line) {
+                $value = [int]($line -split "=")[1].Trim()
+                if ($value -ge 14) {
+                    Add-Result "Minimum Password Length" "PASS" "MinimumPasswordLength = $value (>= 14)"
+                } else {
+                    Add-Result "Minimum Password Length" "FAIL" "MinimumPasswordLength = $value (required >= 14)"
+                }
             } else {
-                Add-Result "Minimum Password Length" "FAIL" "MinimumPasswordLength = $value (required >= 14)"
+                Add-Result "Minimum Password Length" "FAIL" "Setting not found and PIN not configured"
             }
+            Remove-Item $secpolFile -Force
         } else {
-            Add-Result "Minimum Password Length" "FAIL" "Setting not found and PIN not configured"
+            Add-Result "Minimum Password Length" "FAIL" "Could not export secpol. Requires Administrator privileges."
         }
-        if (Test-Path $secpolFile) { Remove-Item $secpolFile -Force }
     }
 } catch {
     Add-Result "Minimum Password Length" "FAIL" "Error: $($_.Exception.Message)"
@@ -179,14 +183,14 @@ try {
 }
 
 try {
-    $bl = Get-BitLockerVolume -MountPoint "C:"
+    $bl = Get-BitLockerVolume -MountPoint "C:" -ErrorAction Stop
     if ($bl.ProtectionStatus -eq "On") {
         Add-Result "BitLocker on C:" "PASS" "BitLocker is On"
     } else {
         Add-Result "BitLocker on C:" "FAIL" "BitLocker is $($bl.ProtectionStatus)"
     }
 } catch {
-    Add-Result "BitLocker on C:" "FAIL" "Error: $($_.Exception.Message)"
+    Add-Result "BitLocker on C:" "FAIL" "Error: $($_.Exception.Message) (Requires Administrator)"
 }
 
 try {
@@ -203,11 +207,15 @@ try {
 
 try {
     $regPath = "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
-    $val = (Get-ItemProperty -Path $regPath -Name "SMB1" -ErrorAction SilentlyContinue).SMB1
-    if ($null -eq $val -or $val -eq 0) {
-        Add-Result "SMBv1 Disabled" "PASS" "SMBv1 is safely disabled"
+    $props = Get-ItemProperty -Path $regPath -ErrorAction SilentlyContinue
+    if ($props -and ($props.psobject.properties.match("SMB1").Count -gt 0)) {
+        if ($props.SMB1 -eq 0) {
+            Add-Result "SMBv1 Disabled" "PASS" "SMBv1 is safely disabled"
+        } else {
+            Add-Result "SMBv1 Disabled" "FAIL" "SMBv1 is enabled (Vulnerable)"
+        }
     } else {
-        Add-Result "SMBv1 Disabled" "FAIL" "SMBv1 is enabled (Vulnerable)"
+        Add-Result "SMBv1 Disabled" "PASS" "SMBv1 property missing (safely disabled by default)"
     }
 } catch {
     Add-Result "SMBv1 Disabled" "FAIL" "Error: $($_.Exception.Message)"
@@ -225,11 +233,12 @@ try {
 }
 
 try {
-    $policy = Get-ExecutionPolicy
-    if ($policy -in @("Restricted", "RemoteSigned", "AllSigned")) {
-        Add-Result "PowerShell Execution Policy" "PASS" "Execution Policy is safely configured ($policy)"
+    $lm = Get-ExecutionPolicy -Scope LocalMachine
+    $cu = Get-ExecutionPolicy -Scope CurrentUser
+    if (($lm -notin @("Bypass", "Unrestricted")) -and ($cu -notin @("Bypass", "Unrestricted"))) {
+        Add-Result "PowerShell Execution Policy" "PASS" "Execution Policy is safely configured"
     } else {
-        Add-Result "PowerShell Execution Policy" "FAIL" "Execution Policy is $policy"
+        Add-Result "PowerShell Execution Policy" "FAIL" "Execution Policy is insecure (LM: $lm, CU: $cu)"
     }
 } catch {
     Add-Result "PowerShell Execution Policy" "FAIL" "Error: $($_.Exception.Message)"
