@@ -76,69 +76,58 @@ LINUX_GUIDES = {
         "desc": "Disables SSH remote login as 'root' to enforce credential accountability and local logging.",
         "fix": "sudo sed -i 's/^#*PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config\nsudo systemctl restart ssh"
     },
-    "SSH Password Authentication": {
-        "desc": "Disables vulnerable SSH password prompts to mandate highly secure key-based remote authentication.",
-        "fix": "sudo sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config\nsudo systemctl restart ssh"
-    },
-    "Firewall All Profiles": {
+    "UFW Firewall Enabled": {
         "desc": "Ensures the system runs an active local firewall wrapper to drop unauthorized network connections.",
         "fix": "sudo ufw enable || (sudo systemctl enable --now firewalld)"
     },
-    "Windows Update Active": {
+    "Unattended Upgrades Enabled": {
         "desc": "Configures automatic package updates to deploy system and security patches daily without manual latency.",
         "fix": "sudo apt install -y unattended-upgrades || (sudo dnf install -y dnf-automatic && sudo systemctl enable --now dnf-automatic-install.timer)"
     },
-    "AutoRun Disabled": {
+    "ASLR Enabled": {
         "desc": "Address Space Layout Randomization (ASLR) randomizes process memory structures to block buffer overflow exploits.",
         "fix": "echo 'kernel.randomize_va_space = 2' | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"
     },
-    "Windows Defender Enabled": {
+    "AppArmor Enabled": {
         "desc": "Enforces AppArmor or SELinux Mandatory Access Controls to secure host processes against filesystem privilege escalation.",
         "fix": "sudo systemctl enable --now apparmor || (sudo setenforce 1 && sudo sed -i 's/SELINUX=disabled/SELINUX=enforcing/' /etc/selinux/config)"
     },
-    "Guest Account Disabled": {
+    "No Unauthorized UID 0 Accounts": {
         "desc": "Confirms that only the legitimate 'root' user possesses UID 0 superuser status on the system.",
         "fix": "sudo passwd -l guest 2>/dev/null || true"
     },
-    "Umask Configuration": {
+    "Secure Umask Configuration": {
         "desc": "Enforces default file permissions of 027 or tighter to block standard users from reading newly created group/other files.",
         "fix": "sudo sed -i 's/^UMASK.*/UMASK           027/' /etc/login.defs"
     },
-    "Lock Screen on Wake": {
+    "Core Dumps Restricted": {
         "desc": "Configures core dumps restrictions system-wide to prevent sensitive application RAM credentials from caching on disks.",
         "fix": "echo '* hard core 0' | sudo tee -a /etc/security/limits.conf"
     },
-    "Audit Logon Events": {
+    "Auditd Service Running": {
         "desc": "Integrates kernel system activity and authorization logging via auditd to generate security access trails.",
         "fix": "sudo apt install -y auditd || (sudo dnf install -y audit && sudo systemctl enable --now auditd)"
     },
-    "BitLocker on C:": {
+    "Sticky Bit on /tmp": {
         "desc": "Sets the sticky bit permission (+t) on world-writable storage areas to prevent users from deleting others' files.",
         "fix": "sudo chmod +t /tmp /var/tmp"
     },
-    "Remote Desktop Disabled": {
-        "desc": "Blacklists the kernel driver module for usb-storage devices to prevent local physical usb keys data extraction.",
-        "fix": "echo 'blacklist usb-storage' | sudo tee /etc/modprobe.d/usb-storage.conf && sudo modprobe -r usb-storage 2>/dev/null || true"
-    },
-    "Sudo Security": {
+    "Sudo Requires Password": {
         "desc": "Enforces complete password verification for every sudo action, eliminating insecure NOPASSWD user settings.",
         "fix": "sudo sed -i 's/NOPASSWD://g' /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true"
     },
-    "UAC Enabled": {
-        "desc": "Mandates that all privilege escalations run within a verified, interactive TTY screen.",
-        "fix": "echo 'Defaults requiretty' | sudo tee -a /etc/sudoers"
-    },
-    "SMBv1 Disabled": {
+    "SMB Server Min Protocol": {
         "desc": "Ensures the vulnerable legacy SMBv1 networking daemon is closed or blocked to avoid ransomware spreads.",
         "fix": "sudo systemctl disable --now smbd || true"
     },
-    "Administrator Account Renamed": {
+    "Default Admin Account Avoided": {
         "desc": "Eliminates generic administration names 'admin' and 'administrator' from passwd to disable standard brute force scans.",
         "fix": "sudo usermod -l renamed-admin admin 2>/dev/null || true"
     }
 }
 
 URLS = {
+    # Windows URLs
     "Minimum Password Length": "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/minimum-password-length",
     "Account Lockout Threshold": "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/account-lockout-threshold",
     "Firewall All Profiles": "https://learn.microsoft.com/en-us/windows/security/operating-system-security/network-security/windows-defender-firewall/turn-on-windows-defender-firewall",
@@ -154,4 +143,19 @@ URLS = {
     "Windows Update Active": "https://learn.microsoft.com/en-us/windows/deployment/update/waas-manage-updates-wufb",
     "PowerShell Execution Policy": "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies",
     "Administrator Account Renamed": "https://learn.microsoft.com/en-us/windows/security/threat-protection/security-policy-settings/accounts-rename-administrator-account",
+    # Linux URLs
+    "Password Expiration": "https://linux.die.net/man/5/login.defs",
+    "SSH Root Login Disabled": "https://linux.die.net/man/5/sshd_config",
+    "UFW Firewall Enabled": "https://help.ubuntu.com/community/UFW",
+    "Unattended Upgrades Enabled": "https://help.ubuntu.com/community/AutomaticSecurityUpdates",
+    "ASLR Enabled": "https://linux.die.net/man/8/sysctl",
+    "AppArmor Enabled": "https://wiki.ubuntu.com/AppArmor",
+    "No Unauthorized UID 0 Accounts": "https://linux.die.net/man/5/passwd",
+    "Secure Umask Configuration": "https://linux.die.net/man/5/login.defs",
+    "Core Dumps Restricted": "https://linux.die.net/man/5/limits.conf",
+    "Auditd Service Running": "https://linux.die.net/man/8/auditd",
+    "Sticky Bit on /tmp": "https://en.wikipedia.org/wiki/Sticky_bit",
+    "Sudo Requires Password": "https://linux.die.net/man/5/sudoers",
+    "SMB Server Min Protocol": "https://www.samba.org/samba/docs/current/man-html/smb.conf.5.html",
+    "Default Admin Account Avoided": "https://linux.die.net/man/8/usermod",
 }

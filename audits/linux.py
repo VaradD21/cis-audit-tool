@@ -357,7 +357,7 @@ def check_ssh_root_login() -> CheckResult:
 
 def check_ssh_password_auth() -> CheckResult:
 
-    check_name = "SSH Password Authentication"
+    check_name = "SSH Password Authentication Disabled"
 
     severity = "High"
 
@@ -463,7 +463,7 @@ def check_ssh_password_auth() -> CheckResult:
 
 def check_firewall() -> CheckResult:
 
-    check_name = "Firewall All Profiles"
+    check_name = "UFW Firewall Enabled"
 
     severity = "Critical"
 
@@ -513,7 +513,7 @@ def check_firewall() -> CheckResult:
 
 def check_auto_updates() -> CheckResult:
 
-    check_name = "Windows Update Active"                                       
+    check_name = "Unattended Upgrades Enabled"                                       
 
     severity = "High"
 
@@ -581,7 +581,7 @@ def check_auto_updates() -> CheckResult:
 
 def check_aslr() -> CheckResult:
 
-    check_name = "AutoRun Disabled"                                                             
+    check_name = "ASLR Enabled"                                                             
 
     severity = "Medium"
 
@@ -643,7 +643,7 @@ def check_aslr() -> CheckResult:
 
 def check_apparmor_selinux() -> CheckResult:
 
-    check_name = "Windows Defender Enabled"                                              
+    check_name = "AppArmor Enabled"                                              
 
     severity = "High"
 
@@ -713,7 +713,7 @@ def check_apparmor_selinux() -> CheckResult:
 
 def check_single_uid_0() -> CheckResult:
 
-    check_name = "Guest Account Disabled"                                        
+    check_name = "No Unauthorized UID 0 Accounts"                                        
 
     severity = "Critical"
 
@@ -787,7 +787,7 @@ def check_single_uid_0() -> CheckResult:
 
 def check_default_umask() -> CheckResult:
 
-    check_name = "Umask Configuration"
+    check_name = "Secure Umask Configuration"
 
     severity = "Medium"
 
@@ -853,7 +853,7 @@ def check_default_umask() -> CheckResult:
 
 def check_core_dumps() -> CheckResult:
 
-    check_name = "Lock Screen on Wake"                                                        
+    check_name = "Core Dumps Restricted"                                                        
 
     severity = "Medium"
 
@@ -927,7 +927,7 @@ def check_core_dumps() -> CheckResult:
 
 def check_system_auditing() -> CheckResult:
 
-    check_name = "Audit Logon Events"                                    
+    check_name = "Auditd Service Running"                                    
 
     severity = "Medium"
 
@@ -957,7 +957,7 @@ def check_system_auditing() -> CheckResult:
 
 def check_sticky_bit() -> CheckResult:
 
-    check_name = "BitLocker on C:"                                                          
+    check_name = "Sticky Bit on /tmp"                                                          
 
     severity = "High"
 
@@ -1005,7 +1005,7 @@ def check_sticky_bit() -> CheckResult:
 
 def check_usb_storage() -> CheckResult:
 
-    check_name = "Remote Desktop Disabled"                                                              
+    check_name = "USB Storage Disabled"                                                              
 
     severity = "High"
 
@@ -1055,7 +1055,7 @@ def check_usb_storage() -> CheckResult:
 
 def check_sudo_password() -> CheckResult:
 
-    check_name = "Sudo Security"
+    check_name = "Sudo Requires Password"
 
     severity = "Critical"
 
@@ -1145,7 +1145,7 @@ def check_sudo_password() -> CheckResult:
 
 def check_uac_equivalent() -> CheckResult:
 
-    check_name = "UAC Enabled"                                              
+    check_name = "Sudo Requiretty Enabled"                                              
 
     severity = "Critical"
 
@@ -1215,7 +1215,7 @@ def check_uac_equivalent() -> CheckResult:
 
 def check_smb_disabled() -> CheckResult:
 
-    check_name = "SMBv1 Disabled"             
+    check_name = "SMB Server Min Protocol"             
 
     severity = "Critical"
 
@@ -1275,7 +1275,7 @@ def check_smb_disabled() -> CheckResult:
 
 def check_admin_renamed() -> CheckResult:
 
-    check_name = "Administrator Account Renamed"                             
+    check_name = "Default Admin Account Avoided"                             
 
     severity = "High"
 
@@ -1328,43 +1328,21 @@ def check_admin_renamed() -> CheckResult:
 def run_all_checks() -> list[CheckResult]:
 
     checks = [
-
         check_password_length,
-
         check_password_expiration,
-
         check_ssh_root_login,
-
-        check_ssh_password_auth,
-
         check_firewall,
-
         check_auto_updates,
-
         check_aslr,
-
         check_apparmor_selinux,
-
         check_single_uid_0,
-
         check_default_umask,
-
         check_core_dumps,
-
         check_system_auditing,
-
         check_sticky_bit,
-
-        check_usb_storage,
-
         check_sudo_password,
-
-        check_uac_equivalent,
-
         check_smb_disabled,
-
         check_admin_renamed,
-
     ]
 
     results: list[CheckResult] = []
